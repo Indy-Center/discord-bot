@@ -1,20 +1,32 @@
 {
-  "name": "cloudflare-workers-openapi",
-  "version": "0.0.1",
-  "private": true,
-  "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
-    "start": "wrangler dev",
-    "cf-typegen": "wrangler types"
-  },
-  "dependencies": {
-    "chanfana": "^3.3.0",
-    "hono": "^4.12.12",
-    "zod": "^4.3.6"
-  },
-  "devDependencies": {
-    "@types/node": "^25.6.0",
-    "wrangler": "^4.84.1"
-  }
+	"name": "cloudflare-workers-openapi",
+	"version": "0.0.1",
+	"private": true,
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev",
+		"start": "wrangler dev",
+		"cf-typegen": "wrangler types --env-interface Env",
+		"format": "prettier --write .",
+		"lint": "prettier --check .",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"register-commands": "npx tsx --env-file=.dev.vars src/scripts/register-commands.ts",
+		"forum-tags": "npx tsx --env-file=.dev.vars src/scripts/get-forum-tags.ts"
+	},
+	"dependencies": {
+		"chanfana": "^3.3.0",
+		"discord-api-types": "^0.38.47",
+		"hono": "^4.12.12",
+		"node-fetch": "^3.3.2",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@types/node": "^25.6.0",
+		"prettier": "^3.8.3",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.5",
+		"wrangler": "^4.84.1"
+	}
 }
