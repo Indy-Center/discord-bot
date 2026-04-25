@@ -12,8 +12,8 @@
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"register-commands": "npx tsx --env-file=.dev.vars src/scripts/register-commands.ts",
-		"forum-tags": "npx tsx --env-file=.dev.vars src/scripts/get-forum-tags.ts"
+		"register-commands": "npx tsx --env-file=.dev.vars scripts/register-commands.ts",
+		"forum-tags": "npx tsx --env-file=.dev.vars scripts/get-forum-tags.ts"
 	},
 	"dependencies": {
 		"chanfana": "^3.3.0",

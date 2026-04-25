@@ -24,6 +24,38 @@ export const TAGS = {
 	NOT_PLANNED: '1497077455058632816'
 } as const;
 
+// User-facing copy. Tweak here. {placeholder}s are filled by fmt().
+export const MESSAGES = {
+	NOT_IN_FORUM: '❌ /{commandName} must be run inside a forum thread.',
+	NOT_MANAGED: "This forum isn't managed by the bot.",
+	NO_ROUTE: 'No route configured for this channel/tags.',
+	READ_POST_FAIL: "❌ Couldn't read post",
+	GITHUB_ERROR: '❌ GitHub error: {message}',
+	GENERIC_ERROR: '❌ {message}',
+
+	ALREADY_TRACKED: 'This request has already been accepted.',
+	ALREADY_DONE: 'This request has already been resolved.',
+	ALREADY_CLOSED: 'This request was already closed.',
+
+	ACCEPT_PUBLIC_PRIVATE:
+		"Thanks for the report! We've accepted this request and it's being tracked internally. This thread will automatically close when the work is complete.",
+	ACCEPT_PUBLIC_OPEN:
+		"Thanks for the report! We've accepted this request and it's being tracked at {issueUrl}. This thread will automatically close when the issue is resolved.",
+	ACCEPT_ADMIN_OPEN: '✅ Accepted',
+	ACCEPT_ADMIN_PRIVATE: '✅ Created {issueUrl}',
+
+	DENY_PUBLIC:
+		"Sorry, but it doesn't look like your request will be accepted at this time. Feel free to reach out to a member of the Indy Center Tech Team.",
+	DENY_ADMIN: '✅ Denied',
+
+	DONE_PUBLIC: 'This request has been resolved. Thanks for your contribution!',
+	DONE_ADMIN: '✅ Marked done',
+
+	ISSUE_CLOSED_NOT_PLANNED:
+		"This request was closed as not planned. Feel free to reach out to a member of the Indy Center Tech Team if you'd like to discuss.",
+	ISSUE_CLOSED_RESOLVED: 'This request has been resolved. Thanks for your contribution!'
+} as const;
+
 export const CONFIG: { routes: Route[] } = {
 	routes: [
 		{
@@ -60,4 +92,15 @@ export function matchRoute(parentChannelId: string, appliedTags: string[]): Rout
 
 export function hasRouteForChannel(parentChannelId: string): boolean {
 	return CONFIG.routes.some((r) => r.channel_id === parentChannelId);
+}
+
+export function statusOfThread(appliedTags: string[]): string | null {
+	if (appliedTags.includes(TAGS.TRACKED)) return MESSAGES.ALREADY_TRACKED;
+	if (appliedTags.includes(TAGS.DONE)) return MESSAGES.ALREADY_DONE;
+	if (appliedTags.includes(TAGS.NOT_PLANNED)) return MESSAGES.ALREADY_CLOSED;
+	return null;
+}
+
+export function fmt(template: string, ctx: Record<string, string | number> = {}): string {
+	return template.replace(/\{(\w+)\}/g, (_, k) => String(ctx[k] ?? ''));
 }

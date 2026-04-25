@@ -1,25 +1,47 @@
-# Cloudflare Workers OpenAPI 3.1
+# Indy Center Discord Bot
 
-This is a Cloudflare Worker with OpenAPI 3.1 using [chanfana](https://github.com/cloudflare/chanfana) and [Hono](https://github.com/honojs/hono).
+A Cloudflare Worker that turns Discord forum posts into GitHub issues. Moderators triage feedback threads with the slash commands `/accept`, `/deny`, and `/done`. Accepting a thread opens an issue in the repository configured for that forum channel and tag combination, and the thread is updated when the issue is closed on GitHub.
 
-This is an example project made to be used as a quick start into building OpenAPI compliant Workers that generates the
-`openapi.json` schema automatically from code and validates the incoming request to the defined parameters or request body.
+The Worker is built on [Hono](https://hono.dev) and runs on [Cloudflare Workers](https://workers.cloudflare.com), with [Cloudflare KV](https://developers.cloudflare.com/kv/) holding the issue to thread mapping. Forum routing rules live in `src/config.ts`.
 
-## Get started
+## Local Development
 
-1. Sign up for [Cloudflare Workers](https://workers.dev). The free tier is more than enough for most use cases.
-2. Clone this project and install dependencies with `npm install`
-3. Run `wrangler login` to login to your Cloudflare account in wrangler
-4. Run `wrangler deploy` to publish the API to Cloudflare Workers
+1. Clone this repository.
+2. Run `npm install`.
+3. Copy `.dev.vars.example` to `.dev.vars` and fill in the values for your Discord application and GitHub App.
+4. Run `npm run dev` to start a local Worker on `http://localhost:8787`.
+5. Run `npm test` to execute the Vitest suite.
 
-## Project structure
+Local testing is awkward because the bot only does anything in response to webhooks. Both Discord and GitHub need a publicly reachable HTTPS endpoint to deliver events, which `wrangler dev` does not provide on its own. A few options:
 
-1. Your main router is defined in `src/index.ts`.
-2. Each endpoint has its own file in `src/endpoints/`.
-3. For more information read the [chanfana documentation](https://chanfana.pages.dev/) and [Hono documentation](https://hono.dev/docs).
+- Run `wrangler dev --remote` to execute the Worker on Cloudflare's edge instead of locally.
+- Expose `localhost:8787` over HTTPS with a tunnel such as [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) or [ngrok](https://ngrok.com), then point the Discord interaction URL and the GitHub App webhook URL at the tunnel.
+- Deploy a separate development Worker with `wrangler deploy` and use that for end to end testing.
 
-## Development
+Slash commands have to be registered with Discord before they appear in the server. After editing `src/commands.ts`, run:
 
-1. Run `wrangler dev` to start a local instance of the API.
-2. Open `http://localhost:8787/` in your browser to see the Swagger interface where you can try the endpoints.
-3. Changes made in the `src/` folder will automatically trigger the server to reload, you only need to refresh the Swagger interface.
+```sh
+npm run register-commands
+```
+
+There is also a helper for inspecting forum tag IDs when adding new routes:
+
+```sh
+npm run forum-tags
+```
+
+Both scripts read credentials from `.dev.vars`.
+
+### Deploying
+
+`npm run deploy` publishes the Worker via Wrangler. Production secrets live in Cloudflare, not `.dev.vars`. Set them with `wrangler secret put DISCORD_BOT_TOKEN` and so on for each variable listed above.
+
+## Reach Out
+
+Found a bug or have an idea? Open an issue on this repository. For anything beyond the bot itself, visit [flyindycenter.com](https://flyindycenter.com) or join us on Discord at [discord.indy.center](https://discord.indy.center).
+
+## Disclaimer
+
+We are not affiliated with the FAA or any other governing aviation body. All content in this repository, including the software, configuration, and documentation, is intended for use with flight simulation only.
+
+These tools support virtual air traffic control and flying experiences within the [VATSIM](https://www.vatsim.net) network.

@@ -1,4 +1,7 @@
-import { encodeText, hexToBytes, b64urlEncode, sha256Hex, pemToDer } from './crypto-utils';
+import { Hono } from 'hono';
+import { MESSAGES, TAGS } from './config';
+import { b64urlEncode, encodeText, hexToBytes, pemToDer, sha256Hex } from './crypto';
+import { fetchChannel, patchThread, postMessage } from './discord';
 
 type GitHubEnv = {
 	GITHUB_APP_ID: string;
@@ -6,6 +9,79 @@ type GitHubEnv = {
 	GITHUB_APP_PRIVATE_KEY: string;
 	GITHUB_WEBHOOK_SECRET: string;
 };
+
+export type IssuesEventPayload = {
+	action: string;
+	issue: { number: number; state_reason?: string | null };
+	repository: { full_name: string };
+};
+
+export const githubApp = new Hono<{ Bindings: Env }>();
+
+githubApp.post('/', async (c) => {
+	const sig = c.req.header('x-hub-signature-256');
+	const event = c.req.header('x-github-event');
+	const body = await c.req.text();
+
+	const ok = await verifyWebhook(body, sig, c.env.GITHUB_WEBHOOK_SECRET);
+	if (!ok) return c.body(null, 401);
+
+	if (event === 'issues') {
+		const payload = JSON.parse(body) as IssuesEventPayload;
+		await handleIssuesEvent(payload, c.env);
+	}
+	return c.body(null, 200);
+});
+
+export async function handleIssuesEvent(payload: IssuesEventPayload, env: Env): Promise<void> {
+	if (payload.action !== 'closed') return;
+
+	const key = `issue:${payload.repository.full_name}#${payload.issue.number}`;
+	const raw = await env.KV.get(key);
+	if (!raw) return;
+
+	let mapping: { thread_id: string; channel_id: string };
+	try {
+		mapping = JSON.parse(raw);
+	} catch {
+		console.error('KV value parse failed for key:', key, raw);
+		return;
+	}
+
+	const notPlanned = payload.issue.state_reason === 'not_planned';
+	const closeMessage = notPlanned
+		? MESSAGES.ISSUE_CLOSED_NOT_PLANNED
+		: MESSAGES.ISSUE_CLOSED_RESOLVED;
+	const endTag = notPlanned ? TAGS.NOT_PLANNED : TAGS.DONE;
+
+	try {
+		await postMessage(env.DISCORD_BOT_TOKEN, mapping.thread_id, closeMessage);
+	} catch (err) {
+		console.error('postMessage on issue-close failed:', err);
+	}
+
+	let nextTags: string[] = [endTag];
+	try {
+		const channel = await fetchChannel(env.DISCORD_BOT_TOKEN, mapping.thread_id);
+		const current = channel.applied_tags ?? [];
+		nextTags = Array.from(new Set([...current.filter((t) => t !== TAGS.TRACKED), endTag]));
+	} catch (err) {
+		console.error('fetchChannel on issue-close failed:', err);
+	}
+
+	try {
+		await patchThread(env.DISCORD_BOT_TOKEN, mapping.thread_id, {
+			archived: true,
+			locked: true,
+			applied_tags: nextTags
+		});
+	} catch (err) {
+		console.error('patchThread on issue-close failed:', err);
+		return;
+	}
+
+	await env.KV.delete(key);
+}
 
 export async function createIssue(
 	env: GitHubEnv,

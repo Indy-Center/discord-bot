@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { b64urlEncode, encodeText, hexToBytes } from '../src/crypto-utils';
+import { b64urlEncode, encodeText, hexToBytes } from '../src/crypto';
 
 describe('hexToBytes', () => {
 	it('decodes a lowercase hex string', () => {

@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import { COMMANDS } from '../commands';
+import { COMMANDS } from '../src/commands';
 
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const DISCORD_APPLICATION_ID = process.env.DISCORD_APPLICATION_ID;
