@@ -1,5 +1,11 @@
 # Indy Center Discord Bot
 
+[![Build and Deploy](https://github.com/Indy-Center/discord-bot/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/Indy-Center/discord-bot/actions/workflows/build-and-deploy.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare%20Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com)
+[![Hono](https://img.shields.io/badge/Hono-E36002?logo=hono&logoColor=white)](https://hono.dev)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A Cloudflare Worker that turns Discord forum posts into GitHub issues. Moderators triage feedback threads with the slash commands `/accept`, `/deny`, and `/done`. Accepting a thread opens an issue in the repository configured for that forum channel and tag combination, and the thread is updated when the issue is closed on GitHub.
 
 The Worker is built on [Hono](https://hono.dev) and runs on [Cloudflare Workers](https://workers.cloudflare.com), with [Cloudflare KV](https://developers.cloudflare.com/kv/) holding the issue to thread mapping. Forum routing rules live in `src/config.ts`.
@@ -34,11 +40,15 @@ Both scripts read credentials from `.dev.vars`.
 
 ### Deploying
 
-`npm run deploy` publishes the Worker via Wrangler. Production secrets live in Cloudflare, not `.dev.vars`. Set them with `wrangler secret put DISCORD_BOT_TOKEN` and so on for each variable listed above.
+Merges to `main` deploy automatically via the `Build and Deploy` GitHub Actions workflow. `npm run deploy` publishes manually via Wrangler. Production secrets live in Cloudflare, not `.dev.vars`. Set them with `wrangler secret put DISCORD_BOT_TOKEN` and so on for each variable listed above.
 
 ## Reach Out
 
 Found a bug or have an idea? Open an issue on this repository. For anything beyond the bot itself, visit [flyindycenter.com](https://flyindycenter.com) or join us on Discord at [discord.indy.center](https://discord.indy.center).
+
+## License
+
+Released under the [MIT License](LICENSE).
 
 ## Disclaimer
 
