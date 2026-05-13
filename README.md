@@ -1,57 +1,64 @@
-# Indy Center Discord Bot
+# discord-bot
+
+Cloudflare Worker that turns Discord forum posts into GitHub issues. Moderators triage feedback threads with `/accept`, `/deny`, `/done`; accepting opens an issue in the repo configured for that forum channel + tag combination, and the thread is updated when the issue is closed on GitHub. Built on Hono, with KV holding the thread ↔ issue mapping.
 
 [![Build and Deploy](https://github.com/Indy-Center/discord-bot/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/Indy-Center/discord-bot/actions/workflows/build-and-deploy.yml)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare%20Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com)
-[![Hono](https://img.shields.io/badge/Hono-E36002?logo=hono&logoColor=white)](https://hono.dev)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A Cloudflare Worker that turns Discord forum posts into GitHub issues. Moderators triage feedback threads with the slash commands `/accept`, `/deny`, and `/done`. Accepting a thread opens an issue in the repository configured for that forum channel and tag combination, and the thread is updated when the issue is closed on GitHub.
+## HTTP surface
 
-The Worker is built on [Hono](https://hono.dev) and runs on [Cloudflare Workers](https://workers.cloudflare.com), with [Cloudflare KV](https://developers.cloudflare.com/kv/) holding the issue to thread mapping. Forum routing rules live in `src/config.ts`.
+- `GET /` — liveness check (`discord-bot ok`).
+- `POST /discord` — Discord interaction webhook (slash commands, signed via `DISCORD_PUBLIC_KEY`).
+- `POST /github` — GitHub App webhook for issue close events.
 
-## Local Development
+## Project layout
 
-1. Clone this repository.
-2. Run `npm install`.
-3. Copy `.dev.vars.example` to `.dev.vars` and fill in the values for your Discord application and GitHub App.
-4. Run `npm run dev` to start a local Worker on `http://localhost:8787`.
-5. Run `npm test` to execute the Vitest suite.
+- `src/index.ts` — Hono root; mounts `/discord` and `/github`.
+- `src/discord.ts` — slash-command handlers (`/accept`, `/deny`, `/done`).
+- `src/github.ts` — issue-close webhook handler that updates the originating Discord thread.
+- `src/config.ts` — forum-channel-to-repo routing rules. Add new forums and tag filters here.
+- `src/commands.ts` — slash command definitions; re-register via `npm run register-commands` after edits.
+- `src/crypto.ts` — Discord webhook signature verification.
 
-Local testing is awkward because the bot only does anything in response to webhooks. Both Discord and GitHub need a publicly reachable HTTPS endpoint to deliver events, which `wrangler dev` does not provide on its own. A few options:
+## Local development
 
-- Run `wrangler dev --remote` to execute the Worker on Cloudflare's edge instead of locally.
-- Expose `localhost:8787` over HTTPS with a tunnel such as [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) or [ngrok](https://ngrok.com), then point the Discord interaction URL and the GitHub App webhook URL at the tunnel.
-- Deploy a separate development Worker with `wrangler deploy` and use that for end to end testing.
+```bash
+npm install
+cp .dev.vars.example .dev.vars   # fill in Discord + GitHub App creds
+npm run dev                      # http://localhost:8787
+```
 
-Slash commands have to be registered with Discord before they appear in the server. After editing `src/commands.ts`, run:
+The bot only acts on inbound webhooks, so plain `wrangler dev` isn't reachable from Discord/GitHub. Either:
 
-```sh
+- `wrangler dev --remote` — runs the Worker on Cloudflare's edge so webhooks reach it.
+- Tunnel `localhost:8787` over HTTPS via [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) or [ngrok](https://ngrok.com), then point the Discord interaction URL and GitHub App webhook URL at the tunnel.
+- Deploy a separate dev Worker (`wrangler deploy`) and test end-to-end against it.
+
+After editing `src/commands.ts`, re-register commands with Discord:
+
+```bash
 npm run register-commands
 ```
 
-There is also a helper for inspecting forum tag IDs when adding new routes:
+When adding a new forum route, dump tag IDs with:
 
-```sh
+```bash
 npm run forum-tags
 ```
 
-Both scripts read credentials from `.dev.vars`.
+## Tests
 
-### Deploying
+```bash
+npm test             # vitest
+npm run typecheck    # tsc --noEmit
+```
 
-Merges to `main` deploy automatically via the `Build and Deploy` GitHub Actions workflow. `npm run deploy` publishes manually via Wrangler. Production secrets live in Cloudflare, not `.dev.vars`. Set them with `wrangler secret put DISCORD_BOT_TOKEN` and so on for each variable listed above.
+## Deployment
 
-## Reach Out
+Pushing to `main` triggers `.github/workflows/build-and-deploy.yml`. Manual deploys use `npm run deploy`. Production secrets live in Cloudflare — set each one with `wrangler secret put`. The full list is in `.dev.vars.example`.
 
-Found a bug or have an idea? Open an issue on this repository. For anything beyond the bot itself, visit [flyindycenter.com](https://flyindycenter.com) or join us on Discord at [discord.indy.center](https://discord.indy.center).
-
-## License
-
-Released under the [MIT License](LICENSE).
+The KV namespace `KV` (declared in `wrangler.jsonc`) stores the thread ↔ issue mapping. No D1 or other bindings.
 
 ## Disclaimer
 
-We are not affiliated with the FAA or any other governing aviation body. All content in this repository, including the software, configuration, and documentation, is intended for use with flight simulation only.
-
-These tools support virtual air traffic control and flying experiences within the [VATSIM](https://www.vatsim.net) network.
+We are not affiliated with the FAA or any aviation governing body. This software is for flight simulation use on the [VATSIM](https://www.vatsim.net) network.
